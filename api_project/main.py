@@ -50,6 +50,26 @@ def main():
                     make_map(point, spn, size, filename)
                     map_image = pg.image.load(filename)
                     screen.blit(map_image, (100, 250))
+                elif event.key == pg.K_DOWN:
+                    point[1] = str(max(float(point[1]) - spn, -85))
+                    make_map(point, spn, size, filename)
+                    map_image = pg.image.load(filename)
+                    screen.blit(map_image, (100, 250))
+                elif event.key == pg.K_UP:
+                    point[1] = str(min(float(point[1]) + spn, 85))
+                    make_map(point, spn, size, filename)
+                    map_image = pg.image.load(filename)
+                    screen.blit(map_image, (100, 250))
+                elif event.key == pg.K_LEFT:
+                    point[0] = str(max(float(point[0]) - spn * 2, -180 + spn / 2))
+                    make_map(point, spn, size, filename)
+                    map_image = pg.image.load(filename)
+                    screen.blit(map_image, (100, 250))
+                elif event.key == pg.K_RIGHT:
+                    point[0] = str(min(float(point[0]) + spn * 2, 180 - spn / 2))
+                    make_map(point, spn, size, filename)
+                    map_image = pg.image.load(filename)
+                    screen.blit(map_image, (100, 250))
                 else:
                     search_text += event.unicode
 
@@ -141,4 +161,3 @@ def make_map(point, spn, size, filename):
 
 if __name__ == '__main__':
     main()
-
