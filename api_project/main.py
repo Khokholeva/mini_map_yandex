@@ -10,15 +10,18 @@ spn = 1
 l = 'map'
 size = (450, 450)
 clock = pg.time.Clock()
-
+dot = False
+started = False
+search_text = ''
 
 def main():
-    global spn, l, point
+    global spn, l, point, started, dot, search_text
+
     deleting = False
     running = True
     focused = False
     point = None
-    search_text = ''
+
     screen = start()
     font = pg.font.Font(None, 60)
     font_2 = pg.font.Font(None, 35)
@@ -36,39 +39,41 @@ def main():
                     if map_image:
                         if spn > 0.001953125:
                             spn /= 2
-                            make_map(point, spn, size, filename)
+                            make_map(point, spn, size, filename, dot)
                             map_image = pg.image.load(filename)
                             screen.blit(map_image, (100, 250))
                 elif event.key == pg.K_PAGEDOWN:
                     if map_image:
                         if spn < 64:
                             spn *= 2
-                            make_map(point, spn, size, filename)
+                            make_map(point, spn, size, filename, dot)
                             map_image = pg.image.load(filename)
                             screen.blit(map_image, (100, 250))
                 elif event.key == 13:
+                    started = True
                     point = make_point(search_text)
-                    make_map(point, spn, size, filename)
+                    dot = ','.join(point) + ',pm2rdm'
+                    make_map(point, spn, size, filename, dot)
                     map_image = pg.image.load(filename)
                     screen.blit(map_image, (100, 250))
                 elif event.key == pg.K_DOWN:
                     point[1] = str(max(float(point[1]) - spn, -85))
-                    make_map(point, spn, size, filename)
+                    make_map(point, spn, size, filename, dot)
                     map_image = pg.image.load(filename)
                     screen.blit(map_image, (100, 250))
                 elif event.key == pg.K_UP:
                     point[1] = str(min(float(point[1]) + spn, 85))
-                    make_map(point, spn, size, filename)
+                    make_map(point, spn, size, filename, dot)
                     map_image = pg.image.load(filename)
                     screen.blit(map_image, (100, 250))
                 elif event.key == pg.K_LEFT:
                     point[0] = str(max(float(point[0]) - spn * 2, -180 + spn / 2))
-                    make_map(point, spn, size, filename)
+                    make_map(point, spn, size, filename, dot)
                     map_image = pg.image.load(filename)
                     screen.blit(map_image, (100, 250))
                 elif event.key == pg.K_RIGHT:
                     point[0] = str(min(float(point[0]) + spn * 2, 180 - spn / 2))
-                    make_map(point, spn, size, filename)
+                    make_map(point, spn, size, filename, dot)
                     map_image = pg.image.load(filename)
                     screen.blit(map_image, (100, 250))
                 else:
@@ -79,12 +84,14 @@ def main():
 
             if event.type == pg.MOUSEBUTTONDOWN:
                 if focused:
+                    started = True
                     point = make_point(search_text)
-                    make_map(point, spn, size, filename)
+                    dot = ','.join(point) + ',pm2rdm'
+                    make_map(point, spn, size, filename, dot)
                     map_image = pg.image.load(filename)
                     screen.blit(map_image, (100, 250))
                 else:
-                    l_checker(*event.pos, screen)
+                    buttons_checker(*event.pos, screen)
 
             if event.type == pg.MOUSEMOTION:
                 x, y = event.pos
@@ -142,6 +149,11 @@ def start():
     screen.blit(texts[1], (275, 205))
     screen.blit(texts[2], (375, 205))
 
+    font = pg.font.Font(None, 30)
+    pg.draw.rect(screen, (100, 255, 100), (660, 150, 330, 50), 1)
+    text = font.render("Сброс поискового результата", 1, (100, 255, 100))
+    screen.blit(text, (670, 165))
+
     return screen
 
 
@@ -160,12 +172,14 @@ def make_point(request_text):
         "pos"].split()
 
 
-def make_map(point, spn, size, filename):
+def make_map(point, spn, size, filename, dot):
     map_params = {
         "ll": ','.join(point),
         "l": l,
         "size": '450,450',
         "spn": str(spn) + ',' + str(spn)}
+    if dot:
+        map_params['pt'] = dot
     response = requests.get(map_api_server, params=map_params)
 
     if not response:
@@ -176,8 +190,8 @@ def make_map(point, spn, size, filename):
         pic.write(response.content)
 
 
-def l_checker(x, y, screen):
-    global l
+def buttons_checker(x, y, screen):
+    global l, dot, started, search_text
     if 160 <= x <= 250 and 200 <= y <= 230:
         l = 'map'
         font = pg.font.Font(None, 25)
@@ -192,10 +206,12 @@ def l_checker(x, y, screen):
         screen.blit(texts[0], (175, 205))
         screen.blit(texts[1], (275, 205))
         screen.blit(texts[2], (375, 205))
-        make_map(point, spn, size, filename)
-        map_image = pg.image.load(filename)
-        screen.blit(map_image, (100, 250))
-    if 260 <= x <= 350 and 200 <= y <= 230:
+        if started:
+            make_map(point, spn, size, filename, dot)
+            map_image = pg.image.load(filename)
+            screen.blit(map_image, (100, 250))
+
+    elif 260 <= x <= 350 and 200 <= y <= 230:
         l = 'sat'
         font = pg.font.Font(None, 25)
         texts = [font.render("Схема", 1, (100, 255, 100)),
@@ -209,11 +225,12 @@ def l_checker(x, y, screen):
         screen.blit(texts[0], (175, 205))
         screen.blit(texts[1], (275, 205))
         screen.blit(texts[2], (375, 205))
+        if started:
+            make_map(point, spn, size, filename, dot)
+            map_image = pg.image.load(filename)
+            screen.blit(map_image, (100, 250))
 
-        make_map(point, spn, size, filename)
-        map_image = pg.image.load(filename)
-        screen.blit(map_image, (100, 250))
-    if 360 <= x <= 450 and 200 <= y <= 230:
+    elif 360 <= x <= 450 and 200 <= y <= 230:
         l = 'sat,skl'
         font = pg.font.Font(None, 25)
         texts = [font.render("Схема", 1, (100, 255, 100)),
@@ -227,10 +244,18 @@ def l_checker(x, y, screen):
         screen.blit(texts[0], (175, 205))
         screen.blit(texts[1], (275, 205))
         screen.blit(texts[2], (375, 205))
+        if started:
+            make_map(point, spn, size, filename, dot)
+            map_image = pg.image.load(filename)
+            screen.blit(map_image, (100, 250))
 
-        make_map(point, spn, size, filename)
-        map_image = pg.image.load(filename)
-        screen.blit(map_image, (100, 250))
+    elif 660 <= x <= 990 and 150 <= y <= 200:
+        search_text = ''
+        dot = False
+        if started:
+            make_map(point, spn, size, filename, dot)
+            map_image = pg.image.load(filename)
+            screen.blit(map_image, (100, 250))
 
 
 if __name__ == '__main__':
