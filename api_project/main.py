@@ -13,6 +13,8 @@ clock = pg.time.Clock()
 dot = False
 started = False
 search_text = ''
+postal = False
+
 
 def main():
     global spn, l, point, started, dot, search_text
@@ -25,6 +27,7 @@ def main():
     screen = start()
     font = pg.font.Font(None, 60)
     font_2 = pg.font.Font(None, 35)
+    info_font = pg.font.Font(None, 30)
 
     pg.display.flip()
     while running:
@@ -51,11 +54,26 @@ def main():
                             screen.blit(map_image, (100, 250))
                 elif event.key == 13:
                     started = True
-                    point = make_point(search_text)
+                    point, info_text = make_point(search_text)
                     dot = ','.join(point) + ',pm2rdm'
                     make_map(point, spn, size, filename, dot)
                     map_image = pg.image.load(filename)
                     screen.blit(map_image, (100, 250))
+
+                    info_spl = info_text.split(' ')
+                    info = ['']
+                    for elem in info_spl:
+                        if len(info[-1]) + len(elem) > 30:
+                            info.append('')
+                        info[-1] += elem + ' '
+                    info[-1] = info[-1][:-1]
+
+                    print(info_text)
+                    screen.fill((0, 0, 0), (601, 251, 400, 298))
+                    for i, elem in enumerate(info):
+                        text = info_font.render(elem, 1, (100, 255, 100))
+                        screen.blit(text, (610, 280 + 40 * i))
+
                 elif event.key == pg.K_DOWN:
                     point[1] = str(max(float(point[1]) - spn, -85))
                     make_map(point, spn, size, filename, dot)
@@ -83,28 +101,7 @@ def main():
                 deleting = False
 
             if event.type == pg.MOUSEBUTTONDOWN:
-                if focused:
-                    started = True
-                    point = make_point(search_text)
-                    dot = ','.join(point) + ',pm2rdm'
-                    make_map(point, spn, size, filename, dot)
-                    map_image = pg.image.load(filename)
-                    screen.blit(map_image, (100, 250))
-                else:
-                    buttons_checker(*event.pos, screen)
-
-            if event.type == pg.MOUSEMOTION:
-                x, y = event.pos
-                if 850 <= x <= 990 and 80 <= y <= 130:
-                    focused = True
-                    button_text = font.render("Enter", 1, (255, 255, 255))
-                    screen.blit(button_text, (860, 85))
-                    pg.draw.rect(screen, (255, 255, 255), (850, 80, 140, 50), 1)
-                else:
-                    focused = False
-                    button_text = font.render("Enter", 1, (100, 255, 100))
-                    screen.blit(button_text, (860, 85))
-                    pg.draw.rect(screen, (100, 255, 100), (850, 80, 140, 50), 1)
+                buttons_checker(*event.pos, screen)
 
         pg.draw.rect(screen, (0, 0, 0), (31, 81, 798, 48))
         text_image = font_2.render(search_text, 1, (100, 255, 100))
@@ -139,15 +136,18 @@ def start():
     font = pg.font.Font(None, 25)
     texts = [font.render("Схема", 1, (255, 255, 255)),
              font.render("Спутник", 1, (100, 255, 100)),
-             font.render("Гибрид", 1, (100, 255, 100))]
+             font.render("Гибрид", 1, (100, 255, 100)),
+             font.render("Почтовый индекс", 1, (100, 255, 100))]
 
     pg.draw.rect(screen, (255, 255, 255), (160, 200, 90, 30), 1)
     pg.draw.rect(screen, (100, 255, 100), (260, 200, 90, 30), 1)
     pg.draw.rect(screen, (100, 255, 100), (360, 200, 90, 30), 1)
+    pg.draw.rect(screen, (100, 255, 100), (830, 220, 160, 30), 1)
 
     screen.blit(texts[0], (175, 205))
     screen.blit(texts[1], (275, 205))
     screen.blit(texts[2], (375, 205))
+    screen.blit(texts[3], (835, 225))
 
     font = pg.font.Font(None, 30)
     pg.draw.rect(screen, (100, 255, 100), (660, 150, 330, 50), 1)
@@ -158,6 +158,7 @@ def start():
 
 
 def make_point(request_text):
+    global postal
     geocoder_params = {
         "apikey": apikey,
         "geocode": request_text,
@@ -168,8 +169,19 @@ def make_point(request_text):
     if not response:
         print('Поиск координат,', response)
         exit(-1)
-    return response.json()["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"][
+
+    point = response.json()["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["Point"][
         "pos"].split()
+    info = response.json()["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"]["metaDataProperty"][
+        "GeocoderMetaData"]["text"]
+    if postal:
+        try:
+            info += ', ' + response.json()["response"]["GeoObjectCollection"]["featureMember"][0]["GeoObject"][
+                "metaDataProperty"][
+                "GeocoderMetaData"]["Address"]["postal_code"]
+        except Exception:
+            pass
+    return point, info
 
 
 def make_map(point, spn, size, filename, dot):
@@ -191,8 +203,30 @@ def make_map(point, spn, size, filename, dot):
 
 
 def buttons_checker(x, y, screen):
-    global l, dot, started, search_text
-    if 160 <= x <= 250 and 200 <= y <= 230:
+    global l, dot, started, search_text, point, postal
+    if 850 <= x <= 990 and 80 <= y <= 130:
+        started = True
+        point, info_text = make_point(search_text)
+        dot = ','.join(point) + ',pm2rdm'
+        make_map(point, spn, size, filename, dot)
+        map_image = pg.image.load(filename)
+        screen.blit(map_image, (100, 250))
+        info_font = pg.font.Font(None, 30)
+
+        info_spl = info_text.split(' ')
+        info = ['']
+        for elem in info_spl:
+            if len(info[-1]) + len(elem) > 30:
+                info.append('')
+            info[-1] += elem + ' '
+        info[-1] = info[-1][:-1]
+
+        screen.fill((0, 0, 0), (601, 251, 400, 298))
+        for i, elem in enumerate(info):
+            text = info_font.render(elem, 1, (100, 255, 100))
+            screen.blit(text, (610, 280 + 40 * i))
+
+    elif 160 <= x <= 250 and 200 <= y <= 230:
         l = 'map'
         font = pg.font.Font(None, 25)
         texts = [font.render("Схема", 1, (255, 255, 255)),
@@ -251,11 +285,30 @@ def buttons_checker(x, y, screen):
 
     elif 660 <= x <= 990 and 150 <= y <= 200:
         search_text = ''
+        screen.fill((0, 0, 0), (601, 251, 400, 298))
         dot = False
         if started:
             make_map(point, spn, size, filename, dot)
             map_image = pg.image.load(filename)
             screen.blit(map_image, (100, 250))
+
+    elif 830 <= x <= 990 and 220 <= y <= 250:
+        postal = not postal
+        point, info_text = make_point(search_text)
+        info_font = pg.font.Font(None, 30)
+
+        info_spl = info_text.split(' ')
+        info = ['']
+        for elem in info_spl:
+            if len(info[-1]) + len(elem) > 30:
+                info.append('')
+            info[-1] += elem + ' '
+        info[-1] = info[-1][:-1]
+
+        screen.fill((0, 0, 0), (601, 251, 400, 298))
+        for i, elem in enumerate(info):
+            text = info_font.render(elem, 1, (100, 255, 100))
+            screen.blit(text, (610, 280 + 40 * i))
 
 
 if __name__ == '__main__':
