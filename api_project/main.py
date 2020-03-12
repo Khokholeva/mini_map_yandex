@@ -7,12 +7,13 @@ map_api_server = "https://static-maps.yandex.ru/1.x/"
 geocoder_api_server = "https://geocode-maps.yandex.ru/1.x/"
 filename = "map.png"
 spn = 1
+l = 'map'
 size = (450, 450)
 clock = pg.time.Clock()
 
 
 def main():
-    global spn
+    global spn, l, point
     deleting = False
     running = True
     focused = False
@@ -82,6 +83,8 @@ def main():
                     make_map(point, spn, size, filename)
                     map_image = pg.image.load(filename)
                     screen.blit(map_image, (100, 250))
+                else:
+                    l_checker(*event.pos, screen)
 
             if event.type == pg.MOUSEMOTION:
                 x, y = event.pos
@@ -125,6 +128,20 @@ def start():
     screen.blit(button_text, (860, 85))
     pg.draw.rect(screen, (100, 255, 100), (850, 80, 140, 50), 1)
     pg.display.set_caption('yandex_mini_map')
+
+    font = pg.font.Font(None, 25)
+    texts = [font.render("Схема", 1, (255, 255, 255)),
+             font.render("Спутник", 1, (100, 255, 100)),
+             font.render("Гибрид", 1, (100, 255, 100))]
+
+    pg.draw.rect(screen, (255, 255, 255), (160, 200, 90, 30), 1)
+    pg.draw.rect(screen, (100, 255, 100), (260, 200, 90, 30), 1)
+    pg.draw.rect(screen, (100, 255, 100), (360, 200, 90, 30), 1)
+
+    screen.blit(texts[0], (175, 205))
+    screen.blit(texts[1], (275, 205))
+    screen.blit(texts[2], (375, 205))
+
     return screen
 
 
@@ -146,7 +163,7 @@ def make_point(request_text):
 def make_map(point, spn, size, filename):
     map_params = {
         "ll": ','.join(point),
-        "l": "map",
+        "l": l,
         "size": '450,450',
         "spn": str(spn) + ',' + str(spn)}
     response = requests.get(map_api_server, params=map_params)
@@ -157,6 +174,63 @@ def make_map(point, spn, size, filename):
 
     with open(filename, 'wb') as pic:
         pic.write(response.content)
+
+
+def l_checker(x, y, screen):
+    global l
+    if 160 <= x <= 250 and 200 <= y <= 230:
+        l = 'map'
+        font = pg.font.Font(None, 25)
+        texts = [font.render("Схема", 1, (255, 255, 255)),
+                 font.render("Спутник", 1, (100, 255, 100)),
+                 font.render("Гибрид", 1, (100, 255, 100))]
+
+        pg.draw.rect(screen, (255, 255, 255), (160, 200, 90, 30), 1)
+        pg.draw.rect(screen, (100, 255, 100), (260, 200, 90, 30), 1)
+        pg.draw.rect(screen, (100, 255, 100), (360, 200, 90, 30), 1)
+
+        screen.blit(texts[0], (175, 205))
+        screen.blit(texts[1], (275, 205))
+        screen.blit(texts[2], (375, 205))
+        make_map(point, spn, size, filename)
+        map_image = pg.image.load(filename)
+        screen.blit(map_image, (100, 250))
+    if 260 <= x <= 350 and 200 <= y <= 230:
+        l = 'sat'
+        font = pg.font.Font(None, 25)
+        texts = [font.render("Схема", 1, (100, 255, 100)),
+                 font.render("Спутник", 1, (255, 255, 255)),
+                 font.render("Гибрид", 1, (100, 255, 100))]
+
+        pg.draw.rect(screen, (100, 255, 100), (160, 200, 90, 30), 1)
+        pg.draw.rect(screen, (255, 255, 255), (260, 200, 90, 30), 1)
+        pg.draw.rect(screen, (100, 255, 100), (360, 200, 90, 30), 1)
+
+        screen.blit(texts[0], (175, 205))
+        screen.blit(texts[1], (275, 205))
+        screen.blit(texts[2], (375, 205))
+
+        make_map(point, spn, size, filename)
+        map_image = pg.image.load(filename)
+        screen.blit(map_image, (100, 250))
+    if 360 <= x <= 450 and 200 <= y <= 230:
+        l = 'sat,skl'
+        font = pg.font.Font(None, 25)
+        texts = [font.render("Схема", 1, (100, 255, 100)),
+                 font.render("Спутник", 1, (100, 255, 100)),
+                 font.render("Гибрид", 1, (255, 255, 255))]
+
+        pg.draw.rect(screen, (100, 255, 100), (160, 200, 90, 30), 1)
+        pg.draw.rect(screen, (100, 255, 100), (260, 200, 90, 30), 1)
+        pg.draw.rect(screen, (255, 255, 255), (360, 200, 90, 30), 1)
+
+        screen.blit(texts[0], (175, 205))
+        screen.blit(texts[1], (275, 205))
+        screen.blit(texts[2], (375, 205))
+
+        make_map(point, spn, size, filename)
+        map_image = pg.image.load(filename)
+        screen.blit(map_image, (100, 250))
 
 
 if __name__ == '__main__':
